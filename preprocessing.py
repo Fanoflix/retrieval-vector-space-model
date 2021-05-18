@@ -26,15 +26,14 @@ idf = {}
 docLength = {}
 tfidf = {}
 
-print(lemmatizer.lemmatize('accept')) # Testing Lemmatizer
 
 stopWords = ['"', '.', 'a', 'is', 'the', 'of', 'all', 'and', 'to', 'can', 'be', 'as', 'once', 'for', 'at', 'am', 'are', 'has', 'have', 'had', 'up', 'his', 'her', 'in', 'on', 'no', 'we', 'do']
 
-files = listdir('ShortStories') # Get names of all files
+files = listdir('ShortStories') # Names of all files
 postingsList = {}
 for file in files:
     with open(f'./ShortStories/{file}', 'r', encoding='utf8') as f:
-        # Reading the whole file as a string and splitting each substring on spaces and special characters e.g: line break, encoded quotations etc.
+        # File as a string and splitting each substring on spaces and special characters e.g: line break, encoded quotations etc.
         string = re.split(' |-|\n|\u00e3|\u2019|\u201c|\u201d|\u2014|\u2018|\u00a9|\u00af|\u00aa|\u00b4|\u00a7|\u00a8', f.read())
 
     
@@ -43,9 +42,9 @@ for file in files:
             # Stripping word and removing " ' : ; - _ # + @ ( ) / ? ~ ` [ ] { } =
             word = word.strip(',|!|.|"|;|:|-|_|#|+|@|)|(|/|?|~|`|[|]|{|}|=|\u00e3') 
 
-            if word not in stopWords: # If word is not a stopword
+            if word not in stopWords:
 
-                # Lemmatization
+                # Lemmatizing
                 word = lemmatizer.lemmatize(word)
 
                 # Finding Doc Lenghts and storing in {docLength}
@@ -58,7 +57,7 @@ for file in files:
                 if word not in docFreq:
                     docFreq[word] = 0
 
-                # Making Posting List
+                # Making Posting List (Refer to Postings list schema at the top)
                 if word in postingsList:
                     if file.split('.')[0] in postingsList[word]:
                         postingsList[word][file.split('.')[0]] += 1

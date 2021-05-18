@@ -6,20 +6,34 @@ from nltk.stem import WordNetLemmatizer
 import math
 
 stopWords = ['"', '.', 'a', 'is', 'the', 'of', 'all', 'and', 'to', 'can', 'be', 'as', 'once', 'for', 'at', 'am', 'are', 'has', 'have', 'had', 'up', 'his', 'her', 'in', 'on', 'no', 'we', 'do']
+qtfidf = {}
+qtf = {}
+
+#========= Loading Required Data ================================\\
+with open('idf.json', 'r') as f: #                               ||
+    idf = json.load(f) #                                         ||
+#                                                                ||
+with open('postingsList.json', 'r') as f: #                      ||
+    postingsList = json.load(f) #                                ||
+#                                                                ||
+with open('magnitudes.json', 'r') as f: #                        ||
+    magnitudes = json.load(f) #                                  ||
+#                                                                ||
+with open('tfidf.json', 'r') as f: #                             ||
+    tfidf = json.load(f) #                                       ||
+#================================================================//
+
 
 
 def queryProcessing(query):
-    global stopWords
+    global stopWords, qtfidf, qtf, idf, postingsList, magnitudes, tfidf
     lemmatizer = WordNetLemmatizer()
     queryWords = []
     answer = []
-    qtfidf = {}
 
     # ============================== PROCESSING QUERY ==============================
     # ==========================================================================================
 
-    qtf = {}
-    qtfidf = {}
     query = query.split()
     
     # Lemmatizing the Query
@@ -34,54 +48,25 @@ def queryProcessing(query):
             else:
                 qtf[word] = 1
 
-    with open('idf.json', 'r') as f:
-        idf = json.load(f)
 
-    with open('postingsList.json', 'r') as f:
-        postingsList = json.load(f)
-    
-    with open('magnitudes.json', 'r') as f:
-        magnitudes = json.load(f)
-    
-    with open('tfidf.json', 'r') as f:
-        tfidf = json.load(f)
-
-    # Calculating Query tf-idf in qtfidf
-    for word in postingsList:
-        qtfidf[word] = 0
-        if word in qtf:
-            qtfidf[word] = (1 + math.log10(qtf.get(word))) * idf[word]
+    CalculateQtfIdf(qtf) # Stored in {qtfidf}
     
     # Writing Query tf-idf to query-tfidf.json (JUST FOR ASSIGNMENT PURPOSE, SO TEACHER CAN SEE, DONT INCLUDE THIS IN PROGRAM COMPLEXITY)
-    with open('./query-tfidf.json', 'w') as f:
-        json.dump(qtfidf, fp=f, sort_keys=True)
+    # with open('./query-tfidf.json', 'w') as f:
+    #     json.dump(qtfidf, fp=f, sort_keys=True)
 
-    mag = 0
-    queryMagnitude = 0
-    # Calculating Query Magnitude
-    for word in qtfidf:
-        mag += qtfidf[word]**2
-    queryMagnitude = math.sqrt(mag)
-    print(queryMagnitude)
+    queryMagnitude = CalculateQueryMagnitute(qtfidf)
 
     # ============================== SEARCHING CORPUS ==============================
     # ==========================================================================================
-    alpha = 0.005 # Taking this value because terms are quite scattered
+    alpha = 0.005
     similarities = {}
-    mul = 0
-    for i in range(1,51):
+    
+    CalculateCosSims(queryMagnitude, similarities) # Stored in {similarities}
 
-        for word in tfidf:
-            mul += tfidf[word][str(i)] * qtfidf[word]
-
-        similarity = mul   /  (magnitudes[str(i)] * queryMagnitude)
-        similarities[str(i)] = similarity
-        mul = 0
-        similarity = 0
-
-    # Writing the Cosine Similarities for the Teacher to see.
-    with open('./similarities.json', 'w') as f:
-        json.dump(similarities, fp=f, sort_keys=True)
+    # Writing the Cosine Similarities in similarities.json (JUST FOR ASSIGNMENT PURPOSE, SO TEACHER CAN SEE, DONT INCLUDE THIS IN PROGRAM COMPLEXITY)
+    # with open('./similarities.json', 'w') as f:
+    #     json.dump(similarities, fp=f, sort_keys=True)
     
     for item in similarities:
         if similarities[item] > alpha:
@@ -95,8 +80,35 @@ def queryProcessing(query):
         return answer
 
 
+def CalculateQtfIdf(qtf):
+    for word in postingsList:
+        qtfidf[word] = 0
+        if word in qtf:
+            qtfidf[word] = (1 + math.log10(qtf.get(word))) * idf[word]
+
+
+def CalculateQueryMagnitute(qtfidf):
+    mag = 0
+    for word in qtfidf:
+        mag += qtfidf[word]**2
+    queryMagnitude = math.sqrt(mag)
+    return queryMagnitude
+
+
+def CalculateCosSims(queryMagnitude, similarities):
+    mul = 0
+    for i in range(1,51):
+        for word in tfidf:
+            mul += tfidf[word][str(i)] * qtfidf[word]
+        similarity = mul   /  (magnitudes[str(i)] * queryMagnitude)
+        similarities[str(i)] = similarity
+        mul = 0
+        similarity = 0
+
+
+
 class SearchForm(FlaskForm):
-    query = StringField('Type boolean query here')
+    query = StringField('Type query here')
     submit = SubmitField('Search')
 
 app = Flask(__name__)
